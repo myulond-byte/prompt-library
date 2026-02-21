@@ -113,8 +113,17 @@ body {
 }
 
 @media (max-width: 640px) {
-  .layout { grid-template-columns: 1fr; gap: 16px; }
+  .layout {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 12px 12px 80px;
+  }
   .sidebar { position: static !important; }
+  .card { overflow: hidden; }
+  .card-top { padding: 11px 12px; gap: 8px; }
+  .card-title { font-size: 13px; }
+  .card-desc { font-size: 11px; }
+  .btn-copy { padding: 4px 8px; font-size: 10px; }
 }
 
 /* ── SIDEBAR ── */
