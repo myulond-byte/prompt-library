@@ -702,8 +702,8 @@ function card(p, cat, i) {
       <div class="md" id="${id}-md">${marked.parse(p.content||'')}</div>
       <div class="raw-view" id="${id}-raw">${esc(p.content||'')}</div>
       <div class="view-toggle-row">
-        <button class="btn-sm active" id="${id}-btn-md" onclick="viewMd('${id}')">プレビュー</button>
-        <button class="btn-sm" id="${id}-btn-raw" onclick="viewRaw('${id}')">RAW</button>
+        <button class="btn-sm active" id="${id}-btn-md" onclick="viewMd('${id}',event)">プレビュー</button>
+        <button class="btn-sm" id="${id}-btn-raw" onclick="viewRaw('${id}',event)">RAW</button>
         ${tags ? `<div class="tags">${tags}</div>` : ''}
       </div>
       ${p.file ? `<div class="filepath">📁 ${esc(p.file)}</div>` : ''}
@@ -730,14 +730,16 @@ function copy(id, e) {
   });
 }
 
-function viewMd(id) {
+function viewMd(id, e) {
+  if (e) e.stopPropagation();
   document.getElementById(id+'-md').style.display = '';
   document.getElementById(id+'-raw').classList.remove('show');
   document.getElementById(id+'-btn-md').classList.add('active');
   document.getElementById(id+'-btn-raw').classList.remove('active');
 }
 
-function viewRaw(id) {
+function viewRaw(id, e) {
+  if (e) e.stopPropagation();
   document.getElementById(id+'-md').style.display = 'none';
   document.getElementById(id+'-raw').classList.add('show');
   document.getElementById(id+'-btn-raw').classList.add('active');
