@@ -37,51 +37,30 @@ def get_icon(name: str) -> str:
 
 def parse_md(content: str, filepath: Path) -> list[dict]:
     """
-    mdファイルを解析してプロンプトのリストを返す。
-    ## 見出し か ### 見出し を区切りとして分割。
-    見出しがない場合はファイル全体を1プロンプトとして扱う。
+    ファイル全体を1プロンプトとして扱う。
+    ファイル名がタイトルになる。
     """
-    prompts = []
+    body = content.strip()
+    if not body:
+        return []
 
-    # H1/H2/H3 を区切りとして分割
-    sections = re.split(r'\n(?=#{1,3} )', content.strip())
+    # ファイル名をタイトルに（拡張子なし）
+    title = filepath.stem
 
-    for section in sections:
-        lines = section.strip().splitlines()
-        if not lines:
-            continue
+    # 最初の非空・非見出し行を description に
+    desc_match = re.search(r'^([^\n#`]{5,})', body)
+    desc = desc_match.group(1).strip()[:80] if desc_match else ""
 
-        # 見出し行を検出
-        heading_match = re.match(r'^(#{1,3})\s+(.+)', lines[0])
+    # #タグ 抽出（日本語タグも対応）
+    tags = re.findall(r'#([\w\u3040-\u9FFF\u4E00-\u9FFF]+)', body)
 
-        if heading_match:
-            title = heading_match.group(2).strip()
-            body_lines = lines[1:]
-        else:
-            # 見出しなし → ファイル名をタイトルに
-            title = filepath.stem
-            body_lines = lines
-
-        body = "\n".join(body_lines).strip()
-        if not body:
-            continue
-
-        # 最初の非空行を description に
-        desc_match = re.search(r'^([^\n#`]{5,})', body)
-        desc = desc_match.group(1).strip()[:80] if desc_match else ""
-
-        # #タグ 抽出（日本語タグも対応）
-        tags = re.findall(r'#([\w\u3040-\u9FFF\u4E00-\u9FFF]+)', body)
-
-        prompts.append({
-            "title": title,
-            "desc": desc,
-            "content": body,
-            "tags": list(dict.fromkeys(tags)),  # 重複除去
-            "file": str(filepath.relative_to(ROOT)),
-        })
-
-    return prompts
+    return [{
+        "title": title,
+        "desc": desc,
+        "content": body,
+        "tags": list(dict.fromkeys(tags)),
+        "file": str(filepath.relative_to(ROOT)),
+    }]
 
 
 def build():
