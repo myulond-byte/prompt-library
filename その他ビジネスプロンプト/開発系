@@ -1,0 +1,56 @@
+# GAS開発テンプレート
+
+## 基本構造
+\`\`\`javascript
+/**
+ * [機能名]
+ * @param {string} param1 - パラメータ説明
+ * @return {object} 戻り値の説明
+ */
+function functionName(param1) {
+  try {
+    // 処理
+    Logger.log('処理開始');
+    
+    // メイン処理
+    
+    Logger.log('処理完了');
+    return result;
+    
+  } catch(e) {
+    Logger.log('エラー: ' + e.message);
+    throw new Error('エラーメッセージ');
+  }
+}
+\`\`\`
+
+## よく使うコード片
+
+### スプレッドシート操作
+\`\`\`javascript
+const ss = SpreadsheetApp.getActiveSpreadsheet();
+const sheet = ss.getSheetByName('シート名');
+const data = sheet.getDataRange().getValues();
+\`\`\`
+
+### メール送信
+\`\`\`javascript
+GmailApp.sendEmail(
+  'to@example.com',
+  '件名',
+  '本文',
+  {
+    htmlBody: '<p>HTML本文</p>',
+    name: '送信者名'
+  }
+);
+\`\`\`
+
+### トリガー設定
+\`\`\`javascript
+ScriptApp.newTrigger('functionName')
+  .timeBased()
+  .everyDays(1)
+  .atHour(9)
+  .create();
+\`\`\`

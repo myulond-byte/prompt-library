@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Prompt Library</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Noto+Sans+JP:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg:        #f5f3ee;
+  --bg2:       #eceae3;
+  --surface:   #ffffff;
+  --border:    #dbd8cf;
+  --ink:       #1a1814;
+  --ink2:      #6b6760;
+  --ink3:      #aeab a4;
+  --red:       #c94a2a;
+  --amber:     #d4820a;
+  --green:     #2a7a52;
+  --blue:      #2a4fc9;
+  --radius:    10px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 15px; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 300;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  background: var(--surface);
+  border-bottom: 2px solid var(--ink);
+  padding: 0 16px;
+}
+
+.topbar-inner {
+  max-width: 860px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 54px;
+}
+
+.logo {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 900;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.logo em {
+  font-style: normal;
+  color: var(--red);
+}
+
+.search-wrap {
+  flex: 1;
+  position: relative;
+}
+
+.search-ico {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink2);
+  font-size: 13px;
+  pointer-events: none;
+}
+
+#search {
+  width: 100%;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px 8px 32px;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 13px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color .15s;
+  -webkit-appearance: none;
+}
+#search:focus { border-color: var(--ink); }
+#search::placeholder { color: var(--ink2); }
+
+/* ── LAYOUT ── */
+.layout {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 20px 16px 80px;
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 640px) {
+  .layout { grid-template-columns: 1fr; gap: 16px; }
+  .sidebar { position: static !important; }
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  position: sticky;
+  top: 74px;
+}
+
+.sidebar-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink2);
+  margin-bottom: 8px;
+  padding: 0 8px;
+}
+
+.cat-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+@media (max-width: 640px) {
+  .cat-list {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    gap: 6px;
+    scrollbar-width: none;
+  }
+  .cat-list::-webkit-scrollbar { display: none; }
+}
+
+.cat-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  padding: 7px 10px;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 13px;
+  color: var(--ink2);
+  cursor: pointer;
+  text-align: left;
+  transition: background .12s, color .12s;
+  white-space: nowrap;
+}
+
+.cat-btn:hover { background: var(--bg2); color: var(--ink); }
+.cat-btn.active {
+  background: var(--ink);
+  color: #fff;
+}
+
+.cat-btn .cat-count {
+  margin-left: auto;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+@media (max-width: 640px) {
+  .cat-btn { width: auto; padding: 6px 12px; }
+  .cat-btn .cat-count { display: none; }
+}
+
+/* ── STATS ── */
+.stats-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.stat {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.stat-n {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.stat-l {
+  font-size: 11px;
+  color: var(--ink2);
+}
+
+/* ── SECTION ── */
+.section { margin-bottom: 32px; }
+
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1.5px solid var(--border);
+}
+
+.section-name {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.section-cnt {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--ink2);
+  margin-left: auto;
+}
+
+/* ── CARD ── */
+.card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  overflow: hidden;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.card:hover {
+  border-color: var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.card-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  width: 28px;
+  text-align: center;
+}
+
+.card-meta { flex: 1; min-width: 0; }
+
+.card-title {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-desc {
+  font-size: 12px;
+  color: var(--ink2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+.card-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.btn-copy {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink2);
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.btn-copy:hover { border-color: var(--green); color: var(--green); background: #f0faf5; }
+.btn-copy.done { border-color: var(--green); color: var(--green); background: #f0faf5; }
+
+.chevron {
+  color: var(--ink2);
+  font-size: 11px;
+  transition: transform .2s;
+  flex-shrink: 0;
+}
+.card.open .chevron { transform: rotate(180deg); }
+
+/* ── CARD BODY ── */
+.card-body {
+  display: none;
+  border-top: 1.5px solid var(--border);
+  padding: 14px;
+  background: var(--bg);
+}
+.card.open .card-body { display: block; }
+
+/* Markdown レンダリング */
+.md h1, .md h2, .md h3 {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  margin: 14px 0 6px;
+  color: var(--ink);
+}
+.md h1 { font-size: 16px; }
+.md h2 { font-size: 15px; }
+.md h3 { font-size: 14px; }
+.md p { margin-bottom: 8px; font-size: 13px; line-height: 1.75; }
+.md ul, .md ol { padding-left: 18px; margin-bottom: 8px; }
+.md li { font-size: 13px; margin-bottom: 3px; }
+.md strong { font-weight: 700; color: var(--ink); }
+.md em { font-style: italic; color: var(--amber); }
+.md code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11.5px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  color: var(--red);
+}
+.md pre {
+  background: var(--ink);
+  border-radius: 8px;
+  padding: 14px;
+  overflow-x: auto;
+  margin: 10px 0;
+}
+.md pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #e8e4dc;
+  font-size: 12px;
+}
+.md blockquote {
+  border-left: 3px solid var(--amber);
+  padding: 6px 12px;
+  margin: 8px 0;
+  color: var(--ink2);
+  font-size: 13px;
+}
+.md hr {
+  border: none;
+  border-top: 1.5px solid var(--border);
+  margin: 12px 0;
+}
+
+/* RAW VIEW */
+.raw-view {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 320px;
+  overflow-y: auto;
+  margin-top: 10px;
+  display: none;
+}
+.raw-view.show { display: block; }
+
+.view-toggle-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-sm {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--ink2);
+  cursor: pointer;
+  transition: all .15s;
+}
+.btn-sm:hover { border-color: var(--ink); color: var(--ink); }
+.btn-sm.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+/* TAGS */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 10px;
+}
+.tag {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  color: var(--ink2);
+}
+
+/* FILE PATH */
+.filepath {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--ink2);
+  margin-top: 8px;
+  opacity: 0.6;
+}
+
+/* HIGHLIGHT */
+mark {
+  background: rgba(212,130,10,0.25);
+  color: inherit;
+  border-radius: 2px;
+}
+
+/* EMPTY */
+.empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--ink2);
+}
+.empty-ico { font-size: 36px; margin-bottom: 10px; }
+.empty-txt { font-family: 'Outfit', sans-serif; font-size: 14px; }
+
+/* TOAST */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(60px);
+  background: var(--green);
+  color: #fff;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  padding: 9px 20px;
+  border-radius: 20px;
+  z-index: 999;
+  pointer-events: none;
+  transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+  white-space: nowrap;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ERROR BANNER */
+.banner {
+  background: #fff5f0;
+  border: 1.5px solid var(--red);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--red);
+  display: none;
+}
+.banner.show { display: block; }
+.banner code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  background: rgba(201,74,42,0.08);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="logo">PROMPT<em>.</em>LIB</div>
+    <div class="search-wrap">
+      <span class="search-ico">⌕</span>
+      <input id="search" type="search" placeholder="キーワードで検索..." autocomplete="off">
+    </div>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-title">カテゴリ</div>
+    <ul class="cat-list" id="cat-list"></ul>
+  </aside>
+
+  <!-- CONTENT -->
+  <div class="content">
+    <!-- ERROR BANNER -->
+    <div class="banner" id="banner">
+      <strong>prompts.json が見つかりません。</strong><br>
+      以下の手順で生成してください：<br><br>
+      1. <code>build.py</code> を WEBプロジェクト/ に置く<br>
+      2. ターミナルで <code>python build.py</code> を実行<br>
+      3. 生成された <code>prompts.json</code> を同じフォルダに置く<br>
+      4. GitHub にプッシュする
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row" id="stats"></div>
+
+    <!-- LIST -->
+    <div id="list"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── 状態 ──
+let DATA = [];
+let activeCategory = 'all';
+let query = '';
+
+// ── データ読み込み ──
+async function load() {
+  try {
+    const res = await fetch('./prompts.json');
+    if (!res.ok) throw new Error(res.status);
+    DATA = await res.json();
+    render();
+  } catch(e) {
+    document.getElementById('banner').classList.add('show');
+    DATA = FALLBACK;
+    render();
+  }
+}
+
+// ── フォールバック（サンプルデータ） ──
+const FALLBACK = [
+  {
+    category: "サンプル",
+    icon: "💡",
+    prompts: [
+      {
+        title: "セールスレター（PASONA）",
+        desc: "PASONAの法則に基づいたセールスレター生成",
+        tags: ["LP", "コピーライティング"],
+        content: `あなたは一流のコピーライターです。以下の商品・サービスについて、PASONAの法則に基づいたセールスレターを作成してください。\n\n【商品情報】\n- 商品名：{商品名}\n- ターゲット：{ターゲット}\n- 価格：{価格}\n\n**P**roblem → **A**ffinity → **S**olution → **O**ffer → **N**arrowing → **A**ction\n\n各セクション300〜500文字で出力してください。`,
+        file: "sample/sales.md"
+      },
+      {
+        title: "要件定義アシスタント",
+        desc: "アイデアを整理して要件定義書を生成",
+        tags: ["開発", "要件定義"],
+        content: `あなたはシニアエンジニア兼PMです。\n以下のアイデアを元に要件定義書を作成してください。\n\n【アイデア】\n{ここに記載}\n\n## 出力\n1. プロダクト概要\n2. ターゲットユーザー\n3. 解決する課題\n4. 主要機能一覧\n5. MVP定義\n6. 開発フェーズ案`,
+        file: "sample/dev.md"
+      }
+    ]
+  }
+];
+
+// ── フィルタ ──
+function filtered() {
+  let all = DATA.flatMap(cat =>
+    cat.prompts.map(p => ({ ...p, _cat: cat.category, _icon: cat.icon }))
+  );
+  if (activeCategory !== 'all') {
+    all = all.filter(p => p._cat === activeCategory);
+  }
+  if (query) {
+    const q = query.toLowerCase();
+    all = all.filter(p =>
+      (p.title||'').toLowerCase().includes(q) ||
+      (p.desc||'').toLowerCase().includes(q) ||
+      (p.content||'').toLowerCase().includes(q) ||
+      (p.tags||[]).some(t => t.toLowerCase().includes(q))
+    );
+  }
+  return all;
+}
+
+function allPrompts() {
+  return DATA.flatMap(c => c.prompts);
+}
+
+// ── ハイライト ──
+function hl(str, q) {
+  if (!q || !str) return esc(str||'');
+  const e = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return esc(str).replace(new RegExp(`(${esc(e)})`, 'gi'), '<mark>$1</mark>');
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── レンダリング ──
+function render() {
+  const items = filtered();
+  const cats  = DATA.map(c => c.category);
+  const total = allPrompts().length;
+
+  // stats
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><span class="stat-n">${total}</span><span class="stat-l">プロンプト</span></div>
+    <div class="stat"><span class="stat-n">${cats.length}</span><span class="stat-l">カテゴリ</span></div>
+    <div class="stat"><span class="stat-n">${items.length}</span><span class="stat-l">表示中</span></div>
+  `;
+
+  // sidebar
+  const catEl = document.getElementById('cat-list');
+  catEl.innerHTML = `<li>
+    <button class="cat-btn${activeCategory==='all'?' active':''}" onclick="setCategory('all')">
+      🗂 すべて <span class="cat-count">${total}</span>
+    </button></li>`;
+  DATA.forEach(cat => {
+    catEl.innerHTML += `<li>
+      <button class="cat-btn${activeCategory===cat.category?' active':''}" onclick="setCategory('${cat.category.replace(/'/g,"\\'")}')">
+        ${cat.icon} ${esc(cat.category)} <span class="cat-count">${cat.prompts.length}</span>
+      </button></li>`;
+  });
+
+  // list
+  const listEl = document.getElementById('list');
+  if (!items.length) {
+    listEl.innerHTML = `<div class="empty"><div class="empty-ico">🔭</div><div class="empty-txt">見つかりませんでした</div></div>`;
+    return;
+  }
+
+  // グループ化
+  const groups = {};
+  items.forEach(p => {
+    if (!groups[p._cat]) groups[p._cat] = { icon: p._icon, prompts: [] };
+    groups[p._cat].prompts.push(p);
+  });
+
+  listEl.innerHTML = Object.entries(groups).map(([cat, g]) =>
+    `<div class="section">
+      <div class="section-head">
+        <span>${g.icon}</span>
+        <span class="section-name">${esc(cat)}</span>
+        <span class="section-cnt">${g.prompts.length}件</span>
+      </div>
+      ${g.prompts.map((p, i) => card(p, cat, i)).join('')}
+    </div>`
+  ).join('');
+}
+
+let cardCounter = 0;
+function card(p, cat, i) {
+  const id = `c${++cardCounter}`;
+  const tags = (p.tags||[]).map(t => `<span class="tag">${esc(t)}</span>`).join('');
+  return `
+  <div class="card" id="${id}">
+    <div class="card-top" onclick="toggle('${id}',event)">
+      <div class="card-icon">${p._icon||'📄'}</div>
+      <div class="card-meta">
+        <div class="card-title">${hl(p.title, query)}</div>
+        ${p.desc ? `<div class="card-desc">${hl(p.desc, query)}</div>` : ''}
+      </div>
+      <div class="card-right">
+        <button class="btn-copy" onclick="copy('${id}',event)">COPY</button>
+        <span class="chevron">▾</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="md" id="${id}-md">${marked.parse(p.content||'')}</div>
+      <div class="raw-view" id="${id}-raw">${esc(p.content||'')}</div>
+      <div class="view-toggle-row">
+        <button class="btn-sm active" id="${id}-btn-md" onclick="viewMd('${id}')">プレビュー</button>
+        <button class="btn-sm" id="${id}-btn-raw" onclick="viewRaw('${id}')">RAW</button>
+        ${tags ? `<div class="tags">${tags}</div>` : ''}
+      </div>
+      ${p.file ? `<div class="filepath">📁 ${esc(p.file)}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+// ── カード操作 ──
+function toggle(id, e) {
+  if (e.target.closest('.btn-copy')) return;
+  document.getElementById(id).classList.toggle('open');
+}
+
+function copy(id, e) {
+  e.stopPropagation();
+  const raw = document.getElementById(id+'-raw');
+  const text = raw ? raw.textContent : '';
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = e.target;
+    btn.textContent = '✓ OK';
+    btn.classList.add('done');
+    setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('done'); }, 2000);
+    toast('コピーしました！');
+  });
+}
+
+function viewMd(id) {
+  document.getElementById(id+'-md').style.display = '';
+  document.getElementById(id+'-raw').classList.remove('show');
+  document.getElementById(id+'-btn-md').classList.add('active');
+  document.getElementById(id+'-btn-raw').classList.remove('active');
+}
+
+function viewRaw(id) {
+  document.getElementById(id+'-md').style.display = 'none';
+  document.getElementById(id+'-raw').classList.add('show');
+  document.getElementById(id+'-btn-raw').classList.add('active');
+  document.getElementById(id+'-btn-md').classList.remove('active');
+}
+
+function setCategory(cat) {
+  activeCategory = cat;
+  cardCounter = 0;
+  render();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.getElementById('search').addEventListener('input', function() {
+  query = this.value.trim();
+  activeCategory = 'all';
+  cardCounter = 0;
+  render();
+});
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ── 起動 ──
+load();
+</script>
+</body>
+</html>

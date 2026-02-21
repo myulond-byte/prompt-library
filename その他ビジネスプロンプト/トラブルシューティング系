@@ -1,0 +1,33 @@
+# よくあるエラーと解決法
+
+## Google Apps Script
+
+### エラー：実行時間の超過
+**原因：** 6分の実行時間制限
+**解決：**
+- 処理を分割してトリガーで実行
+- キャッシュの活用
+- 不要なログ削除
+
+### エラー：API呼び出し制限
+**原因：** 1日の呼び出し回数制限
+**解決：**
+- バッチ処理でまとめる
+- キャッシュの活用
+- 有料プランへのアップグレード
+
+## CORS エラー
+**解決：**
+\`\`\`javascript
+function doGet(e) {
+  return ContentService
+    .createTextOutput(JSON.stringify({result: 'success'}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+\`\`\`
+
+## デバッグ方法
+\`\`\`javascript
+Logger.log('変数の値: ' + JSON.stringify(variable));
+console.log('コンソール出力');
+\`\`\`
