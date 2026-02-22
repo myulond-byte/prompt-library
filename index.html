@@ -31,12 +31,13 @@ body { background: #f5f3ee; color: #1a1814; font-family: 'Noto Sans JP', sans-se
 .stat-n { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 22px; }
 .stat-l { font-size: 11px; color: #6b6760; }
 .section { margin-bottom: 28px; }
-.section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1.5px solid #dbd8cf; }
-.section-name { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 16px; }
-.section-cnt { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #6b6760; margin-left: auto; }
+.section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1.5px solid #dbd8cf; cursor: pointer; -webkit-tap-highlight-color: transparent; user-select: none; }
+.section-head:hover { opacity: 0.75; }
+.section-name { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 16px; flex: 1; }
+.section-cnt { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #6b6760; }
 .section-chevron { color: #aaa; font-size: 12px; transition: transform .2s; flex-shrink: 0; }
-.section.closed .section-chevron { transform: rotate(-90deg); }
-.section.closed .section-body { display: none; }
+.section.collapsed .section-chevron { transform: rotate(-90deg); }
+.section.collapsed .section-body { display: none; }
 .card { background: #fff; border: 1.5px solid #dbd8cf; border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
 .card-top { display: flex; align-items: flex-start; padding: 12px 14px; cursor: pointer; gap: 10px; -webkit-tap-highlight-color: transparent; }
 .card-icon { font-size: 18px; flex-shrink: 0; width: 26px; text-align: center; padding-top: 2px; }
@@ -128,7 +129,7 @@ function cardHtml(p){
   return `<div class="card" id="${id}"><div class="card-top" onclick="toggle('${id}',event)"><div class="card-icon">${p._icon||'📄'}</div><div class="card-meta"><div class="card-title">${hl(p.title,query)}</div>${p.desc?`<div class="card-desc">${hl(p.desc,query)}</div>`:''}</div><div class="card-right"><button class="btn-copy" onclick="copyPrompt('${id}',event)">COPY</button><span class="chevron">▾</span></div></div><div class="card-body"><div class="md">${marked.parse(p.content||'')}</div><div class="raw-text" id="${id}-raw" style="display:none">${esc(p.content||'')}</div>${tags?`<div class="tags">${tags}</div>`:''}</div></div>`;
 }
 function toggle(id,e){if(e.target.closest('.btn-copy'))return;document.getElementById(id).classList.toggle('open');}
-function toggleSection(id){document.getElementById(id).classList.toggle('closed');}
+function toggleSection(id){document.getElementById(id).classList.toggle('collapsed');}
 function copyPrompt(id,e){e.stopPropagation();const text=document.getElementById(id+'-raw').textContent;navigator.clipboard.writeText(text).then(()=>{const b=e.target;b.textContent='✓ OK';b.classList.add('done');setTimeout(()=>{b.textContent='COPY';b.classList.remove('done');},2000);toast('コピーしました！');});}
 function setCategory(cat){activeCategory=cat;render();window.scrollTo({top:0,behavior:'smooth'});}
 document.getElementById('search').addEventListener('input',function(){query=this.value.trim();activeCategory='all';render();});
