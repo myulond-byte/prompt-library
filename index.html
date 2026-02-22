@@ -46,6 +46,9 @@ body {
   background: var(--surface);
   border-bottom: 2px solid var(--ink);
   padding: 0 16px;
+  width: 100%;
+  left: 0;
+  right: 0;
 }
 
 .topbar-inner {
@@ -106,12 +109,14 @@ body {
 /* ── LAYOUT ── */
 .layout {
   max-width: 860px;
+  width: 100%;
   margin: 0 auto;
   padding: 20px 16px 80px;
   display: grid;
   grid-template-columns: 180px 1fr;
   gap: 24px;
   align-items: start;
+  min-width: 0;
 }
 
 @media (max-width: 640px) {
@@ -121,10 +126,8 @@ body {
     padding: 12px 12px 80px;
   }
   .sidebar { position: static !important; }
-  .card { overflow: hidden; }
+  .card { overflow: hidden; max-width: 100%; }
   .card-top { padding: 11px 12px; gap: 8px; }
-  .card-title { font-size: 13px; }
-  .card-desc { font-size: 11px; }
   .btn-copy { padding: 4px 8px; font-size: 10px; }
 }
 
@@ -260,6 +263,8 @@ body {
   margin-bottom: 8px;
   overflow: hidden;
   transition: border-color .15s, box-shadow .15s;
+  width: 100%;
+  min-width: 0;
 }
 
 .card:hover {
@@ -283,7 +288,7 @@ body {
   text-align: center;
 }
 
-.card-meta { flex: 1; min-width: 0; }
+.card-meta { flex: 1; min-width: 0; overflow: hidden; }
 
 .card-title {
   font-family: 'Outfit', sans-serif;
@@ -545,7 +550,7 @@ mark {
   </aside>
 
   <!-- CONTENT -->
-  <div class="content">
+  <div class="content" style="min-width:0;overflow:hidden;">
     <!-- ERROR BANNER -->
     <div class="banner" id="banner">
       <strong>prompts.json が見つかりません。</strong><br>
