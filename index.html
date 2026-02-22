@@ -9,7 +9,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&family=Noto+Sans+JP:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap');
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { overflow-x: hidden; }
-body { background: #f5f3ee; color: #1a1814; font-family: 'Noto Sans JP', sans-serif; font-weight: 300; line-height: 1.6; min-height: 100vh; overflow-x: hidden; }
+body { background: #f5f3ee; color: #1a1814; font-family: 'Noto Sans JP', sans-serif; font-weight: 400; font-size: 17px; line-height: 1.9; min-height: 100vh; overflow-x: hidden; }
+@media (max-width: 640px) { body { font-size: 18px; } }
 .topbar { position: sticky; top: 0; z-index: 100; background: #fff; border-bottom: 2px solid #1a1814; padding: 0 16px; }
 .topbar-inner { display: flex; align-items: center; gap: 12px; height: 52px; max-width: 860px; margin: 0 auto; }
 .logo { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 16px; flex-shrink: 0; white-space: nowrap; }
@@ -46,7 +47,8 @@ body { background: #f5f3ee; color: #1a1814; font-family: 'Noto Sans JP', sans-se
 .card.open .chevron { transform: rotate(180deg); }
 .card-body { display: none; border-top: 1.5px solid #dbd8cf; padding: 14px; background: #f5f3ee; overflow: hidden; }
 .card.open .card-body { display: block; }
-.md { font-size: 13px; line-height: 1.8; word-break: break-word; overflow-wrap: break-word; }
+.md { font-size: 17px; line-height: 1.9; word-break: break-word; overflow-wrap: break-word; font-weight: 400; }
+@media (max-width: 640px) { .md { font-size: 18px; } }
 .md h1,.md h2,.md h3 { font-family: 'Outfit', sans-serif; font-weight: 700; margin: 12px 0 6px; }
 .md h1 { font-size: 16px; } .md h2 { font-size: 15px; } .md h3 { font-size: 14px; }
 .md p { margin-bottom: 8px; }
@@ -57,11 +59,6 @@ body { background: #f5f3ee; color: #1a1814; font-family: 'Noto Sans JP', sans-se
 .md pre { background: #1a1814; border-radius: 8px; padding: 12px; overflow-x: auto; margin: 10px 0; max-width: 100%; }
 .md pre code { background: none; border: none; padding: 0; color: #e8e4dc; word-break: normal; }
 .md blockquote { border-left: 3px solid #d4820a; padding: 6px 12px; color: #6b6760; margin: 8px 0; }
-.raw-view { display: none; font-family: 'IBM Plex Mono', monospace; font-size: 12px; line-height: 1.7; background: #fff; border: 1.5px solid #dbd8cf; border-radius: 8px; padding: 12px; white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto; margin-top: 10px; }
-.raw-view.show { display: block; }
-.view-row { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
-.btn-sm { background: #fff; border: 1.5px solid #dbd8cf; border-radius: 6px; padding: 4px 10px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #6b6760; cursor: pointer; transition: all .15s; }
-.btn-sm.active { background: #1a1814; color: #fff; border-color: #1a1814; }
 .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
 .tag { font-family: 'IBM Plex Mono', monospace; font-size: 10px; padding: 2px 8px; border-radius: 4px; background: #eceae3; border: 1px solid #dbd8cf; color: #6b6760; }
 .filepath { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #aaa; margin-top: 8px; word-break: break-all; }
@@ -124,12 +121,10 @@ function render(){
 function cardHtml(p){
   const id=`c${++cc}`;
   const tags=(p.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
-  return `<div class="card" id="${id}"><div class="card-top" onclick="toggle('${id}',event)"><div class="card-icon">${p._icon||'📄'}</div><div class="card-meta"><div class="card-title">${hl(p.title,query)}</div>${p.desc?`<div class="card-desc">${hl(p.desc,query)}</div>`:''}</div><div class="card-right"><button class="btn-copy" onclick="copyPrompt('${id}',event)">COPY</button><span class="chevron">▾</span></div></div><div class="card-body"><div class="md" id="${id}-md">${marked.parse(p.content||'')}</div><div class="raw-view" id="${id}-raw">${esc(p.content||'')}</div><div class="view-row"><button class="btn-sm active" id="${id}-bmd" onclick="viewMd('${id}',event)">プレビュー</button><button class="btn-sm" id="${id}-braw" onclick="viewRaw('${id}',event)">RAW</button>${tags?`<div class="tags">${tags}</div>`:''}</div>${p.file?`<div class="filepath">📁 ${esc(p.file)}</div>`:''}</div></div>`;
+  return `<div class="card" id="${id}"><div class="card-top" onclick="toggle('${id}',event)"><div class="card-icon">${p._icon||'📄'}</div><div class="card-meta"><div class="card-title">${hl(p.title,query)}</div>${p.desc?`<div class="card-desc">${hl(p.desc,query)}</div>`:''}</div><div class="card-right"><button class="btn-copy" onclick="copyPrompt('${id}',event)">COPY</button><span class="chevron">▾</span></div></div><div class="card-body"><div class="md">${marked.parse(p.content||'')}</div><div class="raw-text" id="${id}-raw" style="display:none">${esc(p.content||'')}</div>${tags?`<div class="tags">${tags}</div>`:''}</div></div>`;
 }
-function toggle(id,e){if(e.target.closest('.btn-copy,.btn-sm'))return;document.getElementById(id).classList.toggle('open');}
+function toggle(id,e){if(e.target.closest('.btn-copy'))return;document.getElementById(id).classList.toggle('open');}
 function copyPrompt(id,e){e.stopPropagation();const text=document.getElementById(id+'-raw').textContent;navigator.clipboard.writeText(text).then(()=>{const b=e.target;b.textContent='✓ OK';b.classList.add('done');setTimeout(()=>{b.textContent='COPY';b.classList.remove('done');},2000);toast('コピーしました！');});}
-function viewMd(id,e){e.stopPropagation();document.getElementById(id+'-md').style.display='';document.getElementById(id+'-raw').classList.remove('show');document.getElementById(id+'-bmd').classList.add('active');document.getElementById(id+'-braw').classList.remove('active');}
-function viewRaw(id,e){e.stopPropagation();document.getElementById(id+'-md').style.display='none';document.getElementById(id+'-raw').classList.add('show');document.getElementById(id+'-braw').classList.add('active');document.getElementById(id+'-bmd').classList.remove('active');}
 function setCategory(cat){activeCategory=cat;render();window.scrollTo({top:0,behavior:'smooth'});}
 document.getElementById('search').addEventListener('input',function(){query=this.value.trim();activeCategory='all';render();});
 function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2000);}
