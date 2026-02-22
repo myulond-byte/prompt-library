@@ -1,4 +1,4 @@
-const CACHE = 'prompt-lib-v1';
+const CACHE = 'promptlib-v2';
 const ASSETS = [
   './',
   './index.html',
