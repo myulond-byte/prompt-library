@@ -62,6 +62,15 @@ body { background: var(--bg); color: var(--ink); font-family: 'Noto Sans JP', sa
 /* DARK MODE TOGGLE */
 .btn-dark { background: transparent; border: 1.5px solid var(--border); border-radius: 8px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; flex-shrink: 0; transition: all .15s; color: var(--ink2); }
 .btn-dark:hover { border-color: var(--ink); color: var(--ink); }
+.btn-view { background: transparent; border: 1.5px solid var(--border); border-radius: 8px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 15px; flex-shrink: 0; transition: all .15s; color: var(--ink2); }
+.btn-view:hover { border-color: var(--ink); color: var(--ink); }
+.btn-view.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+/* COMPACT MODE */
+body.compact .card-top { padding: 8px 12px; }
+body.compact .card-actions { display: none; }
+body.compact .card-right-compact { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.card-right-compact { display: none; }
 
 /* CATEGORY TABS */
 .cat-wrap { background: var(--surface); border-bottom: 1px solid var(--border); transition: background .2s; }
@@ -98,10 +107,25 @@ body { background: var(--bg); color: var(--ink); font-family: 'Noto Sans JP', sa
 .card-icon { font-size: 20px; flex-shrink: 0; width: 28px; text-align: center; padding-top: 2px; }
 .card-meta { flex: 1; min-width: 0; }
 .card-title { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 15px; word-break: break-all; overflow-wrap: anywhere; line-height: 1.4; color: var(--ink); }
-@media (max-width: 640px) { .card-title { font-size: 15px; } }
 .card-desc { font-size: 12px; color: var(--ink2); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.card-actions { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
-.card-right { display: none; }
+
+/* スマホ: ボタンはタイトル下 */
+.card-actions { display: none; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+@media (max-width: 640px) { .card-actions { display: flex; } }
+
+/* PC: ボタンは右 */
+.card-right { display: none; flex-shrink: 0; align-items: center; gap: 6px; }
+@media (min-width: 641px) { .card-right { display: flex; } }
+
+/* PCコンパクトモード */
+@media (min-width: 641px) {
+  body.compact .card-top { padding: 8px 12px; }
+  body.compact .card-desc { display: none; }
+}
+
+/* コンパクトボタンはPCのみ表示 */
+#btn-view { display: none; }
+@media (min-width: 641px) { #btn-view { display: flex; } }
 
 /* BUTTONS */
 .btn-fav { background: transparent; border: none; font-size: 18px; cursor: pointer; line-height: 1; padding: 2px; flex-shrink: 0; transition: transform .15s; -webkit-tap-highlight-color: transparent; }
@@ -164,6 +188,7 @@ mark { background: rgba(212,130,10,0.25); border-radius: 2px; }
       <span class="search-ico">⌕</span>
       <input id="search" type="search" placeholder="キーワードで検索..." autocomplete="off">
     </div>
+    <button class="btn-view" id="btn-view" onclick="toggleCompact()" title="表示切替">☰</button>
     <button class="btn-dark" id="btn-dark" onclick="toggleDark()" title="ダークモード切替">🌙</button>
   </div>
 </div>
@@ -186,6 +211,19 @@ function toggleDark(){
   const isDark = document.body.classList.toggle('dark');
   localStorage.setItem('pl_dark', isDark?'1':'0');
   document.getElementById('btn-dark').textContent = isDark?'☀️':'🌙';
+}
+
+// ── コンパクトモード ──
+function initCompact(){
+  const compact = localStorage.getItem('pl_compact')==='1';
+  if(compact){ document.body.classList.add('compact'); document.getElementById('btn-view').classList.add('active'); document.getElementById('btn-view').textContent='⊞'; }
+}
+function toggleCompact(){
+  const isCompact = document.body.classList.toggle('compact');
+  localStorage.setItem('pl_compact', isCompact?'1':'0');
+  const btn = document.getElementById('btn-view');
+  btn.textContent = isCompact?'⊞':'☰';
+  btn.classList.toggle('active', isCompact);
 }
 
 // ── localStorage ──
@@ -362,12 +400,19 @@ function cardHtml(p){
     `${descText?`<div class="card-desc">${hl(descText,query)}</div>`:''}` +
     `${histBadge}` +
     `<div class="card-actions">` +
-    `<button class="btn-fav" onclick="toggleFav('${esc(p.title)}',event)" title="${fav?'お気に入り解除':'お気に入り登録'}">${fav?'❤️':'🤍'}</button>`+
+    `<button class="btn-fav" onclick="toggleFav('${esc(p.title)}',event)">${fav?'❤️':'🤍'}</button>`+
     `<button class="btn-copy" onclick="copyPrompt('${id}',event)">COPY</button>` +
     `<button class="btn-claude" onclick="openClaude('${id}',event)">✦ Claude</button>` +
     `<span class="chevron">▾</span>` +
     `</div>` +
-    `</div></div>` +
+    `</div>` +
+    `<div class="card-right">` +
+    `<button class="btn-fav" onclick="toggleFav('${esc(p.title)}',event)">${fav?'❤️':'🤍'}</button>`+
+    `<button class="btn-copy" onclick="copyPrompt('${id}',event)">COPY</button>` +
+    `<button class="btn-claude" onclick="openClaude('${id}',event)">✦ Claude</button>` +
+    `<span class="chevron">▾</span>` +
+    `</div>` +
+    `</div>` +
     `<div class="card-body">${varForm}<div class="md">${marked.parse(p.content||'')}</div><div id="${id}-raw" style="display:none">${esc(p.content||'')}</div>${tags?`<div class="tags">${tags}</div>`:''}</div>` +
     `</div>`;
 }
@@ -412,6 +457,7 @@ document.getElementById('search').addEventListener('input',function(){ query=thi
 function toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2000); }
 
 initDark();
+initCompact();
 load();
 
 if('serviceWorker' in navigator){
