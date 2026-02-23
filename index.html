@@ -95,12 +95,13 @@ body { background: var(--bg); color: var(--ink); font-family: 'Noto Sans JP', sa
 .card { background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px; margin-bottom: 8px; overflow: hidden; transition: background .2s, border-color .2s; }
 .card.is-fav { border-color: #e8a0b0; }
 .card-top { display: flex; align-items: center; padding: 12px 14px; cursor: pointer; gap: 10px; -webkit-tap-highlight-color: transparent; }
-.card-icon { font-size: 18px; flex-shrink: 0; width: 26px; text-align: center; }
+.card-icon { font-size: 20px; flex-shrink: 0; width: 28px; text-align: center; padding-top: 2px; }
 .card-meta { flex: 1; min-width: 0; }
-.card-title { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 15px; word-break: break-all; overflow-wrap: anywhere; line-height: 1.3; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-@media (max-width: 640px) { .card-title { font-size: 15px; line-height: 1.3; } }
-.card-desc { font-size: 12px; color: var(--ink2); margin-top: 2px; word-break: break-all; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
-.card-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.card-title { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 15px; word-break: break-all; overflow-wrap: anywhere; line-height: 1.4; color: var(--ink); }
+@media (max-width: 640px) { .card-title { font-size: 15px; } }
+.card-desc { font-size: 12px; color: var(--ink2); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card-actions { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.card-right { display: none; }
 
 /* BUTTONS */
 .btn-fav { background: transparent; border: none; font-size: 18px; cursor: pointer; line-height: 1; padding: 2px; flex-shrink: 0; transition: transform .15s; -webkit-tap-highlight-color: transparent; }
@@ -109,7 +110,7 @@ body { background: var(--bg); color: var(--ink); font-family: 'Noto Sans JP', sa
 .btn-copy.done { border-color: var(--green); color: var(--green); }
 .btn-claude { background: var(--bg); border: 1.5px solid var(--blue); border-radius: 6px; padding: 4px 10px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--blue); cursor: pointer; white-space: nowrap; transition: all .15s; display: inline-flex; align-items: center; gap: 4px; }
 .btn-claude:hover { background: var(--blue); color: #fff; border-color: var(--blue); }
-.chevron { color: var(--ink3); font-size: 11px; transition: transform .2s; flex-shrink: 0; }
+.chevron { color: var(--ink3); font-size: 11px; transition: transform .2s; margin-left: auto; }
 .card.open .chevron { transform: rotate(180deg); }
 
 /* CARD BODY */
@@ -344,18 +345,28 @@ function cardHtml(p){
   const hasVars = extractVars(p.content||'').length > 0;
   const varForm = hasVars ? buildVarForm(id, p.content||'') : '';
   // descから変数記法を除去してクリーンなテキストに
-  const cleanDesc = (p.desc||'').replace(/\{[^}]+\}/g, '').trim();
-  // descが空ならcontentの冒頭を使う
-  const descText = cleanDesc || (p.content||'').replace(/#+\s*/g,'').replace(/\{[^}]+\}/g,'').trim().slice(0,60);
+  const cleanDesc = (p.desc||'').replace(/\{[^}]+\}/g, '').replace(/\s+/g,' ').trim();
+  // contentから見出し・変数・記号を除いた最初の文章を取得
+  const contentPreview = (p.content||'')
+    .split('\n')
+    .map(l=>l.replace(/^#+\s*/,'').replace(/\{[^}]+\}/g,'').replace(/[*_`#]/g,'').trim())
+    .filter(l=>l.length>5)
+    .join(' ')
+    .slice(0,50);
+  const descText = cleanDesc.length > 3 ? cleanDesc : contentPreview;
   return `<div class="card${fav?' is-fav':''}" id="${id}">` +
     `<div class="card-top" onclick="toggle('${id}',event)">` +
     `<div class="card-icon">${p._icon||'📄'}</div>` +
-    `<div class="card-meta"><div class="card-title">${hl(p.title,query)}</div>${descText?`<div class="card-desc">${hl(descText,query)}</div>`:''}${histBadge}</div>` +
-    `<div class="card-right">` +
+    `<div class="card-meta">` +
+    `<div class="card-title">${hl(p.title,query)}</div>` +
+    `${descText?`<div class="card-desc">${hl(descText,query)}</div>`:''}` +
+    `${histBadge}` +
+    `<div class="card-actions">` +
     `<button class="btn-fav" onclick="toggleFav('${esc(p.title)}',event)" title="${fav?'お気に入り解除':'お気に入り登録'}">${fav?'❤️':'🤍'}</button>`+
     `<button class="btn-copy" onclick="copyPrompt('${id}',event)">COPY</button>` +
     `<button class="btn-claude" onclick="openClaude('${id}',event)">✦ Claude</button>` +
     `<span class="chevron">▾</span>` +
+    `</div>` +
     `</div></div>` +
     `<div class="card-body">${varForm}<div class="md">${marked.parse(p.content||'')}</div><div id="${id}-raw" style="display:none">${esc(p.content||'')}</div>${tags?`<div class="tags">${tags}</div>`:''}</div>` +
     `</div>`;
