@@ -97,9 +97,9 @@ body { background: var(--bg); color: var(--ink); font-family: 'Noto Sans JP', sa
 .card-top { display: flex; align-items: center; padding: 12px 14px; cursor: pointer; gap: 10px; -webkit-tap-highlight-color: transparent; }
 .card-icon { font-size: 18px; flex-shrink: 0; width: 26px; text-align: center; }
 .card-meta { flex: 1; min-width: 0; }
-.card-title { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 17px; word-break: break-all; overflow-wrap: anywhere; line-height: 1.3; color: var(--ink); }
-@media (max-width: 640px) { .card-title { font-size: 18px; line-height: 1.3; } }
-.card-desc { font-size: 12px; color: var(--ink2); margin-top: 2px; word-break: break-all; overflow-wrap: anywhere; }
+.card-title { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 15px; word-break: break-all; overflow-wrap: anywhere; line-height: 1.3; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+@media (max-width: 640px) { .card-title { font-size: 15px; line-height: 1.3; } }
+.card-desc { font-size: 12px; color: var(--ink2); margin-top: 2px; word-break: break-all; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 .card-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 
 /* BUTTONS */
@@ -343,10 +343,14 @@ function cardHtml(p){
   const histBadge=hist?`<div class="hist-badge">🕐 ${timeAgo(hist.time)}</div>`:'';
   const hasVars = extractVars(p.content||'').length > 0;
   const varForm = hasVars ? buildVarForm(id, p.content||'') : '';
+  // descから変数記法を除去してクリーンなテキストに
+  const cleanDesc = (p.desc||'').replace(/\{[^}]+\}/g, '').trim();
+  // descが空ならcontentの冒頭を使う
+  const descText = cleanDesc || (p.content||'').replace(/#+\s*/g,'').replace(/\{[^}]+\}/g,'').trim().slice(0,60);
   return `<div class="card${fav?' is-fav':''}" id="${id}">` +
     `<div class="card-top" onclick="toggle('${id}',event)">` +
     `<div class="card-icon">${p._icon||'📄'}</div>` +
-    `<div class="card-meta"><div class="card-title">${hl(p.title,query)}</div>${p.desc?`<div class="card-desc">${hl(p.desc,query)}</div>`:''}${histBadge}</div>` +
+    `<div class="card-meta"><div class="card-title">${hl(p.title,query)}</div>${descText?`<div class="card-desc">${hl(descText,query)}</div>`:''}${histBadge}</div>` +
     `<div class="card-right">` +
     `<button class="btn-fav" onclick="toggleFav('${esc(p.title)}',event)" title="${fav?'お気に入り解除':'お気に入り登録'}">${fav?'❤️':'🤍'}</button>`+
     `<button class="btn-copy" onclick="copyPrompt('${id}',event)">COPY</button>` +
