@@ -97,8 +97,16 @@ body { background: #f5f3ee; color: #1a1814; font-family: 'Noto Sans JP', sans-se
 .tag:hover { border-color: #1a1814; color: #1a1814; }
 .tag.active-tag { background: #1a1814; color: #fff; border-color: #1a1814; }
 
-/* HISTORY BADGE */
-.hist-badge { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #aaa; margin-top: 4px; }
+/* VARIABLE FORM */
+.var-form { background: #fff; border: 1.5px solid #a0b8e8; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+.var-form-title { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #2a4fc9; font-weight: 500; margin-bottom: 10px; letter-spacing: 0.05em; }
+.var-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.var-label { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #c94a2a; background: #fff5f0; border: 1px solid #f0c0b0; border-radius: 4px; padding: 2px 8px; white-space: nowrap; flex-shrink: 0; }
+.var-input { flex: 1; min-width: 140px; background: #f5f3ee; border: 1.5px solid #dbd8cf; border-radius: 6px; padding: 6px 10px; font-family: 'Noto Sans JP', sans-serif; font-size: 14px; color: #1a1814; outline: none; -webkit-appearance: none; }
+.var-input:focus { border-color: #2a4fc9; }
+.var-preview { background: #fff; border: 1.5px solid #dbd8cf; border-radius: 8px; padding: 12px; font-size: 14px; line-height: 1.8; color: #1a1814; white-space: pre-wrap; word-break: break-word; margin-bottom: 10px; max-height: 200px; overflow-y: auto; }
+.var-preview mark.unfilled { background: rgba(201,74,42,0.15); border-radius: 3px; color: #c94a2a; font-style: italic; }
+.var-preview mark.filled { background: rgba(42,122,82,0.15); border-radius: 3px; color: #2a7a52; font-weight: 500; }
 
 mark { background: rgba(212,130,10,0.25); border-radius: 2px; }
 .empty { text-align: center; padding: 60px 20px; color: #aaa; }
@@ -232,12 +240,61 @@ function render(){
   ).join('');
 }
 
+function extractVars(content){
+  const matches = content.match(/\{([^}]+)\}/g)||[];
+  return [...new Set(matches.map(m=>m.slice(1,-1)))];
+}
+
+function buildVarForm(id, content){
+  const vars = extractVars(content);
+  if(!vars.length) return '';
+  const inputs = vars.map(v=>
+    `<div class="var-row">` +
+    `<span class="var-label">{${esc(v)}}</span>` +
+    `<input class="var-input" type="text" placeholder="${esc(v)}を入力..." oninput="updatePreview('${id}')" data-var="${esc(v)}">` +
+    `</div>`
+  ).join('');
+  return `<div class="var-form">` +
+    `<div class="var-form-title">✏️ 変数を入力してください</div>` +
+    `${inputs}` +
+    `<div class="var-preview" id="${id}-preview">${buildPreviewHtml(content, {})}</div>` +
+    `</div>`;
+}
+
+function buildPreviewHtml(content, vals){
+  return esc(content).replace(/\{([^}]+)\}/g, (match, v)=>{
+    const val = vals[v]||'';
+    if(val) return `<mark class="filled">${esc(val)}</mark>`;
+    return `<mark class="unfilled">${match}</mark>`;
+  });
+}
+
+function getFilledContent(id, content){
+  const card = document.getElementById(id);
+  if(!card) return content;
+  const vals = {};
+  card.querySelectorAll('.var-input').forEach(inp=>{ vals[inp.dataset.var]=inp.value; });
+  return content.replace(/\{([^}]+)\}/g, (match,v)=> vals[v]||match);
+}
+
+function updatePreview(id){
+  const card = document.getElementById(id);
+  if(!card) return;
+  const raw = document.getElementById(id+'-raw').textContent;
+  const vals = {};
+  card.querySelectorAll('.var-input').forEach(inp=>{ vals[inp.dataset.var]=inp.value; });
+  const prev = document.getElementById(id+'-preview');
+  if(prev) prev.innerHTML = buildPreviewHtml(raw, vals);
+}
+
 function cardHtml(p){
   const id=`c${++cc}`;
   const fav=isFav(p.title);
   const tags=(p.tags||[]).map(t=>`<span class="tag${t===activeTag?' active-tag':''}" onclick="setTag('${esc(t)}',event)">${esc(t)}</span>`).join('');
   const hist=getHistory().find(h=>h.title===p.title);
   const histBadge=hist?`<div class="hist-badge">🕐 ${timeAgo(hist.time)}</div>`:'';
+  const hasVars = extractVars(p.content||'').length > 0;
+  const varForm = hasVars ? buildVarForm(id, p.content||'') : '';
   return `<div class="card${fav?' is-fav':''}" id="${id}">` +
     `<div class="card-top" onclick="toggle('${id}',event)">` +
     `<div class="card-icon">${p._icon||'📄'}</div>` +
@@ -245,21 +302,22 @@ function cardHtml(p){
     `<div class="card-right">` +
     `<button class="btn-fav" onclick="toggleFav('${esc(p.title)}',event)" title="${fav?'お気に入り解除':'お気に入り登録'}">${fav?'❤️':'🤍'}</button>`+
     `<button class="btn-copy" onclick="copyPrompt('${id}',event)">COPY</button>` +
-    `<button class="btn-claude" onclick="openClaude('${id}',event)" title="コピーしてclaudeで開く">✦ Claude</button>` +
+    `<button class="btn-claude" onclick="openClaude('${id}',event)">✦ Claude</button>` +
     `<span class="chevron">▾</span>` +
     `</div></div>` +
-    `<div class="card-body"><div class="md">${marked.parse(p.content||'')}</div><div id="${id}-raw" style="display:none">${esc(p.content||'')}</div>${tags?`<div class="tags">${tags}</div>`:''}</div>` +
+    `<div class="card-body">${varForm}<div class="md">${marked.parse(p.content||'')}</div><div id="${id}-raw" style="display:none">${esc(p.content||'')}</div>${tags?`<div class="tags">${tags}</div>`:''}</div>` +
     `</div>`;
 }
 
-function toggle(id,e){ if(e.target.closest('.btn-copy,.btn-fav,.btn-claude,.tag')) return; document.getElementById(id).classList.toggle('open'); }
+function toggle(id,e){ if(e.target.closest('.btn-copy,.btn-fav,.btn-claude,.tag,.var-input')) return; document.getElementById(id).classList.toggle('open'); }
 function toggleSection(id){ document.getElementById(id).classList.toggle('collapsed'); }
 
 function copyPrompt(id,e){
   e.stopPropagation();
-  const text=document.getElementById(id+'-raw').textContent;
-  const card=document.getElementById(id);
-  const title=card.querySelector('.card-title')?.textContent||'';
+  const raw = document.getElementById(id+'-raw').textContent;
+  const text = getFilledContent(id, raw);
+  const card = document.getElementById(id);
+  const title = card.querySelector('.card-title')?.textContent||'';
   addHistory(title);
   navigator.clipboard.writeText(text).then(()=>{
     const b=e.target; b.textContent='✓ OK'; b.classList.add('done');
@@ -271,9 +329,10 @@ function copyPrompt(id,e){
 
 function openClaude(id,e){
   e.stopPropagation();
-  const text=document.getElementById(id+'-raw').textContent;
-  const card=document.getElementById(id);
-  const title=card.querySelector('.card-title')?.textContent||'';
+  const raw = document.getElementById(id+'-raw').textContent;
+  const text = getFilledContent(id, raw);
+  const card = document.getElementById(id);
+  const title = card.querySelector('.card-title')?.textContent||'';
   addHistory(title);
   navigator.clipboard.writeText(text).then(()=>{
     toast('コピーしました！ Claudeを開きます...');
