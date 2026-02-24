@@ -178,6 +178,28 @@ mark { background: rgba(212,130,10,0.25); border-radius: 2px; }
 .banner.show { display: block; }
 .banner code { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
 .hist-badge { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--ink3); margin-top: 4px; }
+
+/* FAB */
+.fab { position: fixed; bottom: 24px; right: 20px; z-index: 200; width: 52px; height: 52px; background: var(--red); color: #fff; border: none; border-radius: 50%; font-size: 26px; cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.2); transition: transform .15s, box-shadow .15s; display: flex; align-items: center; justify-content: center; }
+.fab:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+
+/* MODAL */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; align-items: center; justify-content: center; padding: 16px; }
+.modal-overlay.show { display: flex; }
+.modal { background: var(--surface); border-radius: 14px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 8px 40px rgba(0,0,0,0.3); }
+.modal-title { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 18px; margin-bottom: 20px; color: var(--ink); }
+.modal-label { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink2); margin-bottom: 6px; display: block; letter-spacing: 0.05em; }
+.modal-input { width: 100%; background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 12px; font-family: 'Noto Sans JP', sans-serif; font-size: 15px; color: var(--ink); outline: none; margin-bottom: 16px; -webkit-appearance: none; transition: border-color .15s; }
+.modal-input:focus { border-color: var(--blue); }
+.modal-textarea { width: 100%; background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 12px; font-family: 'Noto Sans JP', sans-serif; font-size: 14px; color: var(--ink); outline: none; margin-bottom: 16px; -webkit-appearance: none; resize: vertical; min-height: 200px; line-height: 1.7; transition: border-color .15s; }
+.modal-textarea:focus { border-color: var(--blue); }
+.modal-select { width: 100%; background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 12px; font-family: 'Noto Sans JP', sans-serif; font-size: 15px; color: var(--ink); outline: none; margin-bottom: 16px; -webkit-appearance: none; appearance: none; }
+.modal-hint { font-size: 12px; color: var(--ink2); margin-top: -12px; margin-bottom: 16px; }
+.modal-btns { display: flex; gap: 10px; justify-content: flex-end; }
+.btn-modal-cancel { background: var(--bg2); border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 20px; font-family: 'Noto Sans JP', sans-serif; font-size: 14px; color: var(--ink2); cursor: pointer; }
+.btn-modal-save { background: var(--ink); border: 1.5px solid var(--ink); border-radius: 8px; padding: 10px 24px; font-family: 'Noto Sans JP', sans-serif; font-size: 14px; color: var(--bg); cursor: pointer; font-weight: 700; }
+.btn-modal-delete { background: var(--red); border: 1.5px solid var(--red); border-radius: 8px; padding: 10px 20px; font-family: 'Noto Sans JP', sans-serif; font-size: 14px; color: #fff; cursor: pointer; margin-right: auto; }
+.my-badge { font-family: 'IBM Plex Mono', monospace; font-size: 9px; background: var(--green); color: #fff; border-radius: 4px; padding: 1px 5px; margin-left: 6px; vertical-align: middle; }
 </style>
 </head>
 <body>
@@ -199,6 +221,28 @@ mark { background: rgba(212,130,10,0.25); border-radius: 2px; }
   <div id="list"></div>
 </div>
 <div class="toast" id="toast"></div>
+
+<!-- FAB -->
+<button class="fab" onclick="openModal()" title="プロンプトを追加">＋</button>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">📝 プロンプトを追加</div>
+    <label class="modal-label">タイトル</label>
+    <input class="modal-input" id="m-title" type="text" placeholder="プロンプトのタイトル">
+    <label class="modal-label">カテゴリ</label>
+    <select class="modal-select" id="m-cat"></select>
+    <label class="modal-label">内容（{変数名} で変数を使えます）</label>
+    <textarea class="modal-textarea" id="m-content" placeholder="プロンプトの内容を入力...&#10;&#10;例：あなたは{役割}の専門家です。{テーマ}について教えてください。"></textarea>
+    <div class="modal-hint">💡 {変数名} と書くと穴埋めフォームになります</div>
+    <div class="modal-btns">
+      <button class="btn-modal-delete" id="m-delete" style="display:none" onclick="deleteMyPrompt()">削除</button>
+      <button class="btn-modal-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="btn-modal-save" onclick="saveMyPrompt()">保存</button>
+    </div>
+  </div>
+</div>
 <script>
 let DATA=[], activeCategory='all', query='', activeTag='', cc=0;
 
@@ -260,8 +304,10 @@ function timeAgo(ts){
 const FALLBACK=[{category:"サンプル",icon:"💡",prompts:[{title:"サンプル",desc:"build.pyを実行してください",tags:[],content:"python build.py を実行してください。",file:""}]}];
 
 async function load(){
-  try{ const r=await fetch('./prompts.json'); if(!r.ok) throw 0; DATA=await r.json(); render(); }
-  catch(e){ document.getElementById('banner').classList.add('show'); DATA=FALLBACK; render(); }
+  try{ const r=await fetch('./prompts.json'); if(!r.ok) throw 0; DATA=await r.json(); }
+  catch(e){ document.getElementById('banner').classList.add('show'); DATA=FALLBACK; }
+  mergeMyPrompts();
+  render();
 }
 
 function allPromptsList(){
@@ -392,15 +438,18 @@ function cardHtml(p){
     .join(' ')
     .slice(0,50);
   const descText = cleanDesc.length > 3 ? cleanDesc : contentPreview;
+  const isMyPrompt = p.id && p.id.startsWith('my_');
+  const editBtn = isMyPrompt ? `<button class="btn-copy" onclick="openModal('${p.id}',event)" style="border-color:var(--green);color:var(--green);">✏️</button>` : '';
   return `<div class="card${fav?' is-fav':''}" id="${id}">` +
     `<div class="card-top" onclick="toggle('${id}',event)">` +
     `<div class="card-icon">${p._icon||'📄'}</div>` +
     `<div class="card-meta">` +
-    `<div class="card-title">${hl(p.title,query)}</div>` +
+    `<div class="card-title">${hl(p.title,query)}${isMyPrompt?'<span class="my-badge">MY</span>':''}</div>` +
     `${descText?`<div class="card-desc">${hl(descText,query)}</div>`:''}` +
     `${histBadge}` +
     `<div class="card-actions">` +
     `<button class="btn-fav" onclick="toggleFav('${esc(p.title)}',event)">${fav?'❤️':'🤍'}</button>`+
+    `${editBtn}` +
     `<button class="btn-copy" onclick="copyPrompt('${id}',event)">COPY</button>` +
     `<button class="btn-claude" onclick="openClaude('${id}',event)">✦ Claude</button>` +
     `<span class="chevron">▾</span>` +
@@ -408,6 +457,7 @@ function cardHtml(p){
     `</div>` +
     `<div class="card-right">` +
     `<button class="btn-fav" onclick="toggleFav('${esc(p.title)}',event)">${fav?'❤️':'🤍'}</button>`+
+    `${editBtn}` +
     `<button class="btn-copy" onclick="copyPrompt('${id}',event)">COPY</button>` +
     `<button class="btn-claude" onclick="openClaude('${id}',event)">✦ Claude</button>` +
     `<span class="chevron">▾</span>` +
@@ -455,6 +505,87 @@ function setTag(tag,e){ e.stopPropagation(); activeTag=(activeTag===tag?'':tag);
 document.getElementById('search').addEventListener('input',function(){ query=this.value.trim(); activeCategory='all'; render(); });
 
 function toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2000); }
+
+// ── マイプロンプト管理 ──
+const MY_CAT = 'マイプロンプト';
+const MY_ICON = '📝';
+let editingId = null;
+
+function getMyPrompts(){ try{ return JSON.parse(localStorage.getItem('pl_myprompts')||'[]'); }catch(e){ return []; } }
+function saveMyPrompts(arr){ localStorage.setItem('pl_myprompts', JSON.stringify(arr)); }
+
+function mergeMyPrompts(){
+  const mine = getMyPrompts();
+  if(!mine.length) return;
+  const existing = DATA.find(c=>c.category===MY_CAT);
+  if(existing){ existing.prompts = mine; }
+  else { DATA.unshift({ category: MY_CAT, icon: MY_ICON, prompts: mine }); }
+}
+
+function openModal(editId=null){
+  editingId = editId;
+  const overlay = document.getElementById('modal-overlay');
+  const catSel = document.getElementById('m-cat');
+
+  // カテゴリ選択肢を生成
+  catSel.innerHTML = `<option value="${MY_CAT}">${MY_ICON} ${MY_CAT}</option>`;
+  DATA.filter(c=>c.category!==MY_CAT).forEach(c=>{
+    catSel.innerHTML += `<option value="${c.category}">${c.icon} ${c.category}</option>`;
+  });
+
+  if(editId){
+    const p = getMyPrompts().find(p=>p.id===editId);
+    if(p){
+      document.getElementById('modal-title').textContent = '✏️ プロンプトを編集';
+      document.getElementById('m-title').value = p.title||'';
+      document.getElementById('m-content').value = p.content||'';
+      document.getElementById('m-cat').value = p._cat||MY_CAT;
+      document.getElementById('m-delete').style.display = 'block';
+    }
+  } else {
+    document.getElementById('modal-title').textContent = '📝 プロンプトを追加';
+    document.getElementById('m-title').value = '';
+    document.getElementById('m-content').value = '';
+    document.getElementById('m-delete').style.display = 'none';
+  }
+  overlay.classList.add('show');
+  setTimeout(()=>document.getElementById('m-title').focus(), 100);
+}
+
+function closeModal(){ document.getElementById('modal-overlay').classList.remove('show'); editingId=null; }
+function closeModalOutside(e){ if(e.target===document.getElementById('modal-overlay')) closeModal(); }
+
+function saveMyPrompt(){
+  const title = document.getElementById('m-title').value.trim();
+  const content = document.getElementById('m-content').value.trim();
+  const cat = document.getElementById('m-cat').value;
+  if(!title){ toast('タイトルを入力してください'); return; }
+  if(!content){ toast('内容を入力してください'); return; }
+
+  let mine = getMyPrompts();
+  if(editingId){
+    mine = mine.map(p=>p.id===editingId ? {...p, title, content, _cat:cat, updatedAt:Date.now()} : p);
+    toast('✅ 更新しました！');
+  } else {
+    mine.unshift({ id:'my_'+Date.now(), title, content, _cat:cat, _icon:MY_ICON, tags:[], file:'', desc:'', createdAt:Date.now() });
+    toast('✅ 追加しました！');
+  }
+  saveMyPrompts(mine);
+  closeModal();
+  mergeMyPrompts();
+  render();
+}
+
+function deleteMyPrompt(){
+  if(!editingId) return;
+  if(!confirm('このプロンプトを削除しますか？')) return;
+  let mine = getMyPrompts().filter(p=>p.id!==editingId);
+  saveMyPrompts(mine);
+  closeModal();
+  mergeMyPrompts();
+  render();
+  toast('🗑️ 削除しました');
+}
 
 initDark();
 initCompact();
