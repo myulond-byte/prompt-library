@@ -109,8 +109,10 @@ body.compact .card-right-compact { display: flex; align-items: center; gap: 6px;
 .section.collapsed .section-body { display: none; }
 
 /* CARD */
-.card { background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px; margin-bottom: 8px; overflow: hidden; transition: background .2s, border-color .2s; }
+.card { background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px; margin-bottom: 8px; overflow: hidden; transition: background .2s, border-color .2s, box-shadow .15s, transform .15s; }
+.card:hover { border-color: var(--ink2); box-shadow: 0 4px 16px rgba(0,0,0,0.08); transform: translateY(-1px); }
 .card.is-fav { border-color: #e8a0b0; }
+.card.is-fav:hover { border-color: #c94a6a; }
 .card-top { display: flex; align-items: center; padding: 12px 14px; cursor: pointer; gap: 10px; -webkit-tap-highlight-color: transparent; }
 .card-icon { font-size: 20px; flex-shrink: 0; width: 28px; text-align: center; padding-top: 2px; }
 .card-meta { flex: 1; min-width: 0; }
@@ -190,6 +192,23 @@ mark { background: rgba(212,130,10,0.25); border-radius: 2px; }
 /* FAB */
 .fab { position: fixed; bottom: 24px; right: 20px; z-index: 200; width: 52px; height: 52px; background: var(--red); color: #fff; border: none; border-radius: 50%; font-size: 26px; cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.2); transition: transform .15s, box-shadow .15s; display: flex; align-items: center; justify-content: center; }
 .fab:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+.fab-group { position: fixed; bottom: 24px; right: 20px; z-index: 200; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.fab-group .fab { position: static; }
+.fab-export { background: var(--ink2); font-size: 20px; width: 44px; height: 44px; }
+.fab-export.active { background: var(--blue); }
+
+/* EXPORT BAR */
+.export-bar { display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 300; background: var(--ink); color: var(--bg); padding: 12px 16px; flex-wrap: wrap; gap: 8px; align-items: center; box-shadow: 0 -4px 20px rgba(0,0,0,0.2); }
+.export-bar.show { display: flex; }
+.export-count { font-family: 'IBM Plex Mono', monospace; font-size: 12px; flex: 1; min-width: 80px; }
+.btn-export-action { background: var(--bg); color: var(--ink); border: none; border-radius: 8px; padding: 8px 14px; font-family: 'Noto Sans JP', sans-serif; font-size: 13px; cursor: pointer; font-weight: 700; white-space: nowrap; }
+.btn-export-cancel { background: transparent; color: var(--bg); border: 1.5px solid rgba(255,255,255,0.3); border-radius: 8px; padding: 8px 14px; font-family: 'Noto Sans JP', sans-serif; font-size: 13px; cursor: pointer; white-space: nowrap; }
+
+/* EXPORT CHECKBOX */
+.card-check { display: none; width: 20px; height: 20px; flex-shrink: 0; cursor: pointer; accent-color: var(--blue); }
+body.export-mode .card-check { display: block; }
+body.export-mode .card.selected { border-color: var(--blue); background: color-mix(in srgb, var(--blue) 8%, var(--surface)); }
+body.export-mode .fab-group { bottom: 80px; }
 
 /* MODAL */
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; align-items: center; justify-content: center; padding: 16px; }
@@ -239,8 +258,19 @@ mark { background: rgba(212,130,10,0.25); border-radius: 2px; }
 </div>
 <div class="toast" id="toast"></div>
 
-<!-- FAB -->
-<button class="fab" onclick="openModal()" title="プロンプトを追加">＋</button>
+<!-- EXPORT BAR -->
+<div class="export-bar" id="export-bar">
+  <span class="export-count" id="export-count">0件選択中</span>
+  <button class="btn-export-action" onclick="exportCopy()">📋 まとめてコピー</button>
+  <button class="btn-export-action" onclick="exportDownload()">💾 ダウンロード</button>
+  <button class="btn-export-cancel" onclick="exitExportMode()">✕ キャンセル</button>
+</div>
+
+<!-- FAB GROUP -->
+<div class="fab-group">
+  <button class="fab fab-export" id="fab-export" onclick="toggleExportMode()" title="エクスポート">☑</button>
+  <button class="fab" onclick="openModal()" title="プロンプトを追加">＋</button>
+</div>
 
 <!-- MODAL -->
 <div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
@@ -490,8 +520,9 @@ function cardHtml(p){
   const descText = cleanDesc.length > 3 ? cleanDesc : contentPreview;
   const isMyPrompt = p.id && p.id.startsWith('my_');
   const editBtn = isMyPrompt ? `<button class="btn-copy" onclick="openModal('${p.id}',event)" style="border-color:var(--green);color:var(--green);">✏️</button>` : '';
-  return `<div class="card${fav?' is-fav':''}" id="${id}">` +
+  return `<div class="card${fav?' is-fav':''}" id="${id}" data-title="${esc(p.title)}">` +
     `<div class="card-top" onclick="toggle('${id}',event)">` +
+    `<input type="checkbox" class="card-check" onclick="toggleSelect('${id}',event)">` +
     `<div class="card-icon">${p._icon||'📄'}</div>` +
     `<div class="card-meta">` +
     `<div class="card-title">${hl(p.title,query)}${isMyPrompt?'<span class="my-badge">MY</span>':''}</div>` +
@@ -556,7 +587,77 @@ document.getElementById('search').addEventListener('input',function(){ query=thi
 
 function toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2000); }
 
-// ── マイプロンプト管理 ──
+// ── エクスポート ──
+let exportMode = false;
+
+function toggleExportMode(){
+  exportMode = !exportMode;
+  document.body.classList.toggle('export-mode', exportMode);
+  document.getElementById('fab-export').classList.toggle('active', exportMode);
+  if(exportMode){
+    document.getElementById('export-bar').classList.add('show');
+    toast('チェックしてエクスポート');
+  } else {
+    exitExportMode();
+  }
+}
+
+function exitExportMode(){
+  exportMode = false;
+  document.body.classList.remove('export-mode');
+  document.getElementById('fab-export').classList.remove('active');
+  document.getElementById('export-bar').classList.remove('show');
+  document.querySelectorAll('.card.selected').forEach(c=>c.classList.remove('selected'));
+  document.querySelectorAll('.card-check').forEach(c=>c.checked=false);
+  updateExportCount();
+}
+
+function toggleSelect(id, e){
+  e.stopPropagation();
+  if(!exportMode) return;
+  const card = document.getElementById(id);
+  card.classList.toggle('selected');
+  card.querySelector('.card-check').checked = card.classList.contains('selected');
+  updateExportCount();
+}
+
+function updateExportCount(){
+  const n = document.querySelectorAll('.card.selected').length;
+  document.getElementById('export-count').textContent = `${n}件選択中`;
+}
+
+function getSelectedTexts(){
+  const cards = document.querySelectorAll('.card.selected');
+  if(!cards.length){ toast('プロンプトを選択してください'); return null; }
+  return Array.from(cards).map(card=>{
+    const title = card.querySelector('.card-title')?.textContent.replace('MY','').trim()||'';
+    const raw = card.querySelector('[id$="-raw"]')?.textContent||'';
+    return `# ${title}\n\n${raw}`;
+  }).join('\n\n---\n\n');
+}
+
+function exportCopy(){
+  const text = getSelectedTexts();
+  if(!text) return;
+  navigator.clipboard.writeText(text).then(()=>{
+    toast(`✅ ${document.querySelectorAll('.card.selected').length}件コピーしました！`);
+    exitExportMode();
+  });
+}
+
+function exportDownload(){
+  const text = getSelectedTexts();
+  if(!text) return;
+  const n = document.querySelectorAll('.card.selected').length;
+  const blob = new Blob([text], {type:'text/plain;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `prompts_${new Date().toISOString().slice(0,10)}.txt`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast(`💾 ${n}件ダウンロードしました！`);
+  exitExportMode();
+}
 const MY_CAT = 'マイプロンプト';
 const MY_ICON = '📝';
 let editingId = null;
