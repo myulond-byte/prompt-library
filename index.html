@@ -83,6 +83,14 @@ body.compact .card-right-compact { display: flex; align-items: center; gap: 6px;
 .cat-btn.hist-btn { border-color: var(--blue); color: var(--blue); }
 .cat-btn.hist-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
 
+/* SORT BAR */
+.sort-bar { display: flex; align-items: center; gap: 6px; padding: 6px 16px 8px; max-width: 860px; margin: 0 auto; overflow-x: auto; scrollbar-width: none; }
+.sort-bar::-webkit-scrollbar { display: none; }
+.sort-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--ink3); white-space: nowrap; flex-shrink: 0; }
+.sort-btn { flex-shrink: 0; background: transparent; border: 1px solid var(--border); border-radius: 12px; padding: 3px 10px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--ink2); cursor: pointer; white-space: nowrap; transition: all .15s; }
+.sort-btn:hover { border-color: var(--ink2); color: var(--ink); }
+.sort-btn.active { background: var(--ink2); color: var(--bg); border-color: var(--ink2); }
+
 /* MAIN */
 .main { max-width: 860px; margin: 0 auto; padding: 16px 16px 80px; }
 .stats { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
@@ -214,7 +222,16 @@ mark { background: rgba(212,130,10,0.25); border-radius: 2px; }
     <button class="btn-dark" id="btn-dark" onclick="toggleDark()" title="ダークモード切替">🌙</button>
   </div>
 </div>
-<div class="cat-wrap"><div class="cat-inner" id="cat-list"></div></div>
+<div class="cat-wrap">
+  <div class="cat-inner" id="cat-list"></div>
+  <div class="sort-bar" id="sort-bar">
+    <span class="sort-label">並び替え：</span>
+    <button class="sort-btn active" data-sort="default" onclick="setSort('default')">デフォルト</button>
+    <button class="sort-btn" data-sort="name" onclick="setSort('name')">名前順</button>
+    <button class="sort-btn" data-sort="recent" onclick="setSort('recent')">最近使った順</button>
+    <button class="sort-btn" data-sort="fav" onclick="setSort('fav')">お気に入り優先</button>
+  </div>
+</div>
 <div class="main">
   <div class="banner" id="banner"><strong>prompts.json が見つかりません。</strong><br>ターミナルで <code>python build.py</code> を実行してください。</div>
   <div class="stats" id="stats"></div>
@@ -244,7 +261,39 @@ mark { background: rgba(212,130,10,0.25); border-radius: 2px; }
   </div>
 </div>
 <script>
-let DATA=[], activeCategory='all', query='', activeTag='', cc=0;
+let DATA=[], activeCategory='all', query='', activeTag='', cc=0, activeSort='default';
+
+// ── 並び替え ──
+function initSort(){
+  activeSort = localStorage.getItem('pl_sort')||'default';
+  updateSortUI();
+}
+function setSort(sort){
+  activeSort = sort;
+  localStorage.setItem('pl_sort', sort);
+  updateSortUI();
+  render();
+}
+function updateSortUI(){
+  document.querySelectorAll('.sort-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.sort===activeSort);
+  });
+}
+function applySort(items){
+  if(activeSort==='name') return [...items].sort((a,b)=>(a.title||'').localeCompare(b.title||'','ja'));
+  if(activeSort==='recent'){
+    const hist = Object.fromEntries(getHistory().map(h=>[h.title, h.time]));
+    return [...items].sort((a,b)=>(hist[b.title]||0)-(hist[a.title]||0));
+  }
+  if(activeSort==='fav'){
+    const favs = getFavs();
+    return [...items].sort((a,b)=>{
+      const af = favs.includes(a.title)?1:0, bf = favs.includes(b.title)?1:0;
+      return bf - af;
+    });
+  }
+  return items;
+}
 
 // ── ダークモード ──
 function initDark(){
@@ -324,12 +373,13 @@ function filtered(){
     const histMap=Object.fromEntries(hist.map(h=>[h.title,h.time]));
     all=all.filter(p=>histMap[p.title]);
     all.sort((a,b)=>(histMap[b.title]||0)-(histMap[a.title]||0));
+    return all;
   } else if(activeCategory!=='all'){
     all=all.filter(p=>p._cat===activeCategory);
   }
   if(activeTag){ all=all.filter(p=>(p.tags||[]).includes(activeTag)); }
   if(query){ const q=query.toLowerCase(); all=all.filter(p=>(p.title||'').toLowerCase().includes(q)||(p.desc||'').toLowerCase().includes(q)||(p.content||'').toLowerCase().includes(q)||(p.tags||[]).some(t=>t.toLowerCase().includes(q))); }
-  return all;
+  return applySort(all);
 }
 
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -589,6 +639,7 @@ function deleteMyPrompt(){
 
 initDark();
 initCompact();
+initSort();
 load();
 
 if('serviceWorker' in navigator){
