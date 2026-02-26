@@ -227,6 +227,18 @@ body.export-mode .fab-group { bottom: 80px; }
 .btn-modal-save { background: var(--ink); border: 1.5px solid var(--ink); border-radius: 8px; padding: 10px 24px; font-family: 'Noto Sans JP', sans-serif; font-size: 14px; color: var(--bg); cursor: pointer; font-weight: 700; }
 .btn-modal-delete { background: var(--red); border: 1.5px solid var(--red); border-radius: 8px; padding: 10px 20px; font-family: 'Noto Sans JP', sans-serif; font-size: 14px; color: #fff; cursor: pointer; margin-right: auto; }
 .my-badge { font-family: 'IBM Plex Mono', monospace; font-size: 9px; background: var(--green); color: #fff; border-radius: 4px; padding: 1px 5px; margin-left: 6px; vertical-align: middle; }
+
+/* 使用回数バッジ */
+.use-badge { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--ink3); margin-left: 4px; }
+.use-badge.hot { color: var(--red); font-weight: 700; }
+
+/* 文字数・メモエリア */
+.card-footer { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-top: 1px solid var(--border); background: var(--bg2); }
+.char-count { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--ink3); flex-shrink: 0; }
+.memo-wrap { flex: 1; }
+.memo-input { width: 100%; background: transparent; border: none; font-family: 'Noto Sans JP', sans-serif; font-size: 12px; color: var(--ink2); outline: none; resize: none; line-height: 1.5; min-height: 20px; max-height: 60px; overflow-y: auto; }
+.memo-input::placeholder { color: var(--ink3); }
+.memo-input:focus { color: var(--ink); }
 </style>
 </head>
 <body>
@@ -354,6 +366,22 @@ function getFavs(){ try{ return JSON.parse(localStorage.getItem('pl_favs')||'[]'
 function saveFavs(arr){ localStorage.setItem('pl_favs', JSON.stringify(arr)); }
 function getHistory(){ try{ return JSON.parse(localStorage.getItem('pl_history')||'[]'); }catch(e){ return []; } }
 function saveHistory(arr){ localStorage.setItem('pl_history', JSON.stringify(arr.slice(0,20))); }
+function getUseCounts(){ try{ return JSON.parse(localStorage.getItem('pl_use')||'{}'); }catch(e){ return {}; } }
+function saveUseCounts(obj){ localStorage.setItem('pl_use', JSON.stringify(obj)); }
+function getMemos(){ try{ return JSON.parse(localStorage.getItem('pl_memos')||'{}'); }catch(e){ return {}; } }
+function saveMemos(obj){ localStorage.setItem('pl_memos', JSON.stringify(obj)); }
+
+function incrementUse(title){
+  const counts = getUseCounts();
+  counts[title] = (counts[title]||0) + 1;
+  saveUseCounts(counts);
+}
+function saveMemo(title, val){
+  const memos = getMemos();
+  if(val.trim()) memos[title]=val.trim();
+  else delete memos[title];
+  saveMemos(memos);
+}
 
 // ── お気に入り ──
 function isFav(title){ return getFavs().includes(title); }
@@ -508,47 +536,46 @@ function cardHtml(p){
   const histBadge=hist?`<div class="hist-badge">🕐 ${timeAgo(hist.time)}</div>`:'';
   const hasVars = extractVars(p.content||'').length > 0;
   const varForm = hasVars ? buildVarForm(id, p.content||'') : '';
-  // descから変数記法を除去してクリーンなテキストに
   const cleanDesc = (p.desc||'').replace(/\{[^}]+\}/g, '').replace(/\s+/g,' ').trim();
-  // contentから見出し・変数・記号を除いた最初の文章を取得
-  const contentPreview = (p.content||'')
-    .split('\n')
-    .map(l=>l.replace(/^#+\s*/,'').replace(/\{[^}]+\}/g,'').replace(/[*_`#]/g,'').trim())
-    .filter(l=>l.length>5)
-    .join(' ')
-    .slice(0,50);
+  const contentPreview = (p.content||'').split('\n').map(l=>l.replace(/^#+\s*/,'').replace(/\{[^}]+\}/g,'').replace(/[*_`#]/g,'').trim()).filter(l=>l.length>5).join(' ').slice(0,50);
   const descText = cleanDesc.length > 3 ? cleanDesc : contentPreview;
   const isMyPrompt = p.id && p.id.startsWith('my_');
   const editBtn = isMyPrompt ? `<button class="btn-copy" onclick="openModal('${p.id}',event)" style="border-color:var(--green);color:var(--green);">✏️</button>` : '';
+  const dupBtn = `<button class="btn-copy btn-dup" onclick="duplicatePrompt('${esc(p.title)}','${esc((p.content||'').replace(/'/g,"\\'"))}',event)" title="複製">📋</button>`;
+  const counts = getUseCounts();
+  const useCount = counts[p.title]||0;
+  const useBadge = useCount>0 ? `<span class="use-badge${useCount>=5?' hot':''}">×${useCount}</span>` : '';
+  const charCount = (p.content||'').length;
+  const memos = getMemos();
+  const memo = memos[p.title]||'';
   return `<div class="card${fav?' is-fav':''}" id="${id}" data-title="${esc(p.title)}">` +
     `<div class="card-top" onclick="toggle('${id}',event)">` +
     `<input type="checkbox" class="card-check" onclick="toggleSelect('${id}',event)">` +
     `<div class="card-icon">${p._icon||'📄'}</div>` +
     `<div class="card-meta">` +
-    `<div class="card-title">${hl(p.title,query)}${isMyPrompt?'<span class="my-badge">MY</span>':''}</div>` +
+    `<div class="card-title">${hl(p.title,query)}${isMyPrompt?'<span class="my-badge">MY</span>':''}${useBadge}</div>` +
     `${descText?`<div class="card-desc">${hl(descText,query)}</div>`:''}` +
     `${histBadge}` +
     `<div class="card-actions">` +
     `<button class="btn-fav" onclick="toggleFav('${esc(p.title)}',event)">${fav?'❤️':'🤍'}</button>`+
-    `${editBtn}` +
+    `${editBtn}${dupBtn}` +
     `<button class="btn-copy" onclick="copyPrompt('${id}',event)">COPY</button>` +
     `<button class="btn-claude" onclick="openClaude('${id}',event)">✦ Claude</button>` +
     `<span class="chevron">▾</span>` +
-    `</div>` +
-    `</div>` +
+    `</div></div>` +
     `<div class="card-right">` +
     `<button class="btn-fav" onclick="toggleFav('${esc(p.title)}',event)">${fav?'❤️':'🤍'}</button>`+
-    `${editBtn}` +
+    `${editBtn}${dupBtn}` +
     `<button class="btn-copy" onclick="copyPrompt('${id}',event)">COPY</button>` +
     `<button class="btn-claude" onclick="openClaude('${id}',event)">✦ Claude</button>` +
     `<span class="chevron">▾</span>` +
-    `</div>` +
-    `</div>` +
+    `</div></div>` +
     `<div class="card-body">${varForm}<div class="md">${marked.parse(p.content||'')}</div><div id="${id}-raw" style="display:none">${esc(p.content||'')}</div>${tags?`<div class="tags">${tags}</div>`:''}</div>` +
+    `<div class="card-footer"><span class="char-count">📝 ${charCount}文字</span><div class="memo-wrap"><textarea class="memo-input" placeholder="メモを追加..." rows="1" oninput="saveMemo('${esc(p.title)}',this.value)">${esc(memo)}</textarea></div></div>` +
     `</div>`;
 }
 
-function toggle(id,e){ if(e.target.closest('.btn-copy,.btn-fav,.btn-claude,.tag,.var-input')) return; document.getElementById(id).classList.toggle('open'); }
+function toggle(id,e){ if(e.target.closest('.btn-copy,.btn-fav,.btn-claude,.tag,.var-input,.btn-dup,.memo-input,.card-check')) return; document.getElementById(id).classList.toggle('open'); }
 function toggleSection(id){ document.getElementById(id).classList.toggle('collapsed'); }
 
 function copyPrompt(id,e){
@@ -556,8 +583,9 @@ function copyPrompt(id,e){
   const raw = document.getElementById(id+'-raw').textContent;
   const text = getFilledContent(id, raw);
   const card = document.getElementById(id);
-  const title = card.querySelector('.card-title')?.textContent||'';
+  const title = card.querySelector('.card-title')?.textContent.replace('MY','').trim()||'';
   addHistory(title);
+  incrementUse(title);
   navigator.clipboard.writeText(text).then(()=>{
     const b=e.target; b.textContent='✓ OK'; b.classList.add('done');
     setTimeout(()=>{ b.textContent='COPY'; b.classList.remove('done'); },2000);
@@ -571,13 +599,24 @@ function openClaude(id,e){
   const raw = document.getElementById(id+'-raw').textContent;
   const text = getFilledContent(id, raw);
   const card = document.getElementById(id);
-  const title = card.querySelector('.card-title')?.textContent||'';
+  const title = card.querySelector('.card-title')?.textContent.replace('MY','').trim()||'';
   addHistory(title);
+  incrementUse(title);
   navigator.clipboard.writeText(text).then(()=>{
     toast('コピーしました！ Claudeを開きます...');
     setTimeout(()=>{ window.open('https://claude.ai','_blank'); },800);
     if(activeCategory==='🕐') render();
   });
+}
+
+function duplicatePrompt(title, content, e){
+  e.stopPropagation();
+  let mine = getMyPrompts();
+  mine.unshift({ id:'my_'+Date.now(), title:'📋 '+title, content, _cat:'マイプロンプト', _icon:'📝', tags:[], file:'', desc:'', createdAt:Date.now() });
+  saveMyPrompts(mine);
+  mergeMyPrompts();
+  render();
+  toast('📋 複製しました！');
 }
 
 function setCategory(cat){ activeCategory=cat; activeTag=''; render(); window.scrollTo({top:0,behavior:'smooth'}); }
